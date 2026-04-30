@@ -36,6 +36,8 @@ export default function ResumeBuilderPage() {
   });
 
   const onSubmit = async (data: ResumeFormData) => {
+    if (loading) return; // ✅ prevent double submit
+
     setLoading(true);
     setGeneratedResume(null);
 
@@ -46,6 +48,11 @@ export default function ResumeBuilderPage() {
         body: JSON.stringify(data),
       });
 
+      // ❗ SAFE CHECK
+      if (!res.ok) {
+        throw new Error("API request failed");
+      }
+
       const json = await res.json();
 
       if (!json?.resume) {
@@ -55,7 +62,7 @@ export default function ResumeBuilderPage() {
 
       setGeneratedResume(json.resume);
 
-      // ✅ SAVE TO DATABASE (Supabase)
+      // SAVE TO DB
       if (isSignedIn && user?.id) {
         await saveResume(user.id, {
           ...data,
@@ -66,11 +73,16 @@ export default function ResumeBuilderPage() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong");
+      toast.error("Something went wrong while generating resume");
     } finally {
       setLoading(false);
     }
   };
+
+  const renderError = (key: keyof ResumeFormData) =>
+    errors[key]?.message && (
+      <p className="text-red-500 text-xs">{errors[key]?.message}</p>
+    );
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -93,9 +105,7 @@ export default function ResumeBuilderPage() {
                 {...register(key as keyof ResumeFormData)}
                 className="w-full border rounded-lg p-2 mt-1"
               />
-              <p className="text-red-500 text-xs">
-                {errors[key as keyof ResumeFormData]?.message}
-              </p>
+              {renderError(key as keyof ResumeFormData)}
             </div>
           ))}
 
@@ -109,9 +119,7 @@ export default function ResumeBuilderPage() {
                 rows={3}
                 className="w-full border rounded-lg p-2 mt-1"
               />
-              <p className="text-red-500 text-xs">
-                {errors[key as keyof ResumeFormData]?.message}
-              </p>
+              {renderError(key as keyof ResumeFormData)}
             </div>
           ))}
 

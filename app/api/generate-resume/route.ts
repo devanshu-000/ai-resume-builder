@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { generateResume } from "@/lib/gemini";
 
 export async function POST(req: Request) {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   // 1. Auth check (:contentReference[oaicite:0]{index=0})
   if (!userId) {
