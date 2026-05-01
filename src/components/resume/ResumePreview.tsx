@@ -1,20 +1,21 @@
-"use client";
+"use client"
 
-import { useRef } from "react";
-import { downloadPDF } from "@/lib/pdfExport";
+import { useRef } from "react"
+import { downloadPDF } from "@/lib/pdfExport"
+import ResumeScore from "@/src/components/resume/ResumeScore"
 
 interface Props {
-  content: string;
+  content: string
 }
 
 export default function ResumePreview({ content }: Props) {
-  const previewRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null)
 
   const handleDownload = () => {
     if (previewRef.current) {
-      downloadPDF("resume-preview");
+      downloadPDF("resume-preview")
     }
-  };
+  }
 
   return (
     <div>
@@ -27,7 +28,7 @@ export default function ResumePreview({ content }: Props) {
         {content || "No resume generated yet"}
       </div>
 
-      {/* Actions */}
+      {/* Download Button */}
       <div className="flex gap-3 mt-4">
         <button
           onClick={handleDownload}
@@ -36,6 +37,9 @@ export default function ResumePreview({ content }: Props) {
           ⬇ Download PDF
         </button>
       </div>
+
+      {/* Score Section */}
+      <ResumeScore resumeContent={content} />
     </div>
-  );
+  )
 }

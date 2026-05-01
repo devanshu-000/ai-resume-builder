@@ -1,64 +1,62 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { useUser, useClerk } from "@clerk/nextjs";
-import { getUserResumes, deleteResume } from "@/services/resumeService";
-import Link from "next/link";
-import { toast } from "sonner";
+import { useEffect, useState } from "react"
+import { useUser, useClerk } from "@clerk/nextjs"
+import { getUserResumes, deleteResume } from "@/services/resumeService"
+import Link from "next/link"
+import { toast } from "sonner"
+import ResumeSkeleton from "@/src/components/ui/ResumeSkeleton"
 
 type Resume = {
-  id: string;
-  full_name: string;
-  created_at: string;
-  resume_content: string;
-};
+  id: string
+  full_name: string
+  created_at: string
+  resume_content: string
+  score?: number
+}
 
 export default function DashboardPage() {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { user, isLoaded } = useUser()
+  const { signOut } = useClerk()
 
-  const [resumes, setResumes] = useState<Resume[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [resumes, setResumes] = useState<Resume[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadResumes = async () => {
-      if (!isLoaded || !user?.id) return;
-
+      if (!isLoaded || !user?.id) return
       try {
-        const data = await getUserResumes(user.id);
-        setResumes(data || []);
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to load resumes");
+        const data = await getUserResumes(user.id)
+        setResumes(data || [])
+      } catch {
+        toast.error("Failed to load resumes")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-
-    loadResumes();
-  }, [user, isLoaded]);
+    }
+    loadResumes()
+  }, [user, isLoaded])
 
   const handleDelete = async (id: string) => {
-    const confirmDelete = confirm("Are you sure you want to delete this resume?");
-    if (!confirmDelete) return;
-
+    if (!confirm("Are you sure you want to delete this resume?")) return
     try {
-      await deleteResume(id);
-      setResumes((prev) => prev.filter((r) => r.id !== id));
-      toast.success("Resume deleted");
-    } catch (err) {
-      console.error(err);
-      toast.error("Delete failed");
+      await deleteResume(id)
+      setResumes((prev) => prev.filter((r) => r.id !== id))
+      toast.success("Resume deleted")
+    } catch {
+      toast.error("Delete failed")
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
       <nav className="bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
-        <h1 className="text-xl font-bold text-indigo-700">AI Resume Builder</h1>
+        <Link href="/" className="text-xl font-bold text-indigo-700">
+          AI Resume Builder
+        </Link>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 hidden sm:block">
             {user?.emailAddresses[0]?.emailAddress}
           </span>
           <button
@@ -70,10 +68,17 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      {/* Content */}
       <div className="max-w-4xl mx-auto p-6">
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold text-indigo-700">My Resumes</h2>
+          <div>
+            <h2 className="text-3xl font-bold text-indigo-700">My Resumes</h2>
+            {!loading && (
+              <p className="text-gray-400 text-sm mt-1">
+                {resumes.length} resume{resumes.length !== 1 ? "s" : ""} saved
+              </p>
+            )}
+          </div>
           <Link
             href="/resume-builder"
             className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
@@ -82,29 +87,52 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {loading && <p className="text-gray-400">Loading...</p>}
+        {/* Skeleton loader */}
+        {loading && <ResumeSkeleton />}
 
+        {/* Empty state */}
         {!loading && resumes.length === 0 && (
-          <div className="text-center py-20 text-gray-400">
-            <p className="text-xl mb-4">No resumes yet</p>
-            <Link href="/resume-builder" className="text-indigo-600 underline">
-              Create your first one
+          <div className="text-center py-24 text-gray-400">
+            <p className="text-5xl mb-4">📄</p>
+            <p className="text-xl font-medium text-gray-600 mb-2">No resumes yet</p>
+            <p className="text-sm mb-6">Create your first AI-powered resume in minutes</p>
+            <Link
+              href="/resume-builder"
+              className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg hover:bg-indigo-700 transition"
+            >
+              Build My Resume
             </Link>
           </div>
         )}
 
+        {/* Resume list */}
         <div className="grid gap-4">
           {resumes.map((resume) => (
             <div
               key={resume.id}
-              className="border rounded-xl p-5 bg-white shadow-sm flex justify-between items-start"
+              className="border rounded-xl p-5 bg-white shadow-sm flex justify-between items-start hover:shadow-md transition"
             >
-              <div>
-                <h2 className="font-semibold text-lg text-gray-800">
-                  {resume.full_name}
-                </h2>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h2 className="font-semibold text-lg text-gray-800">
+                    {resume.full_name}
+                  </h2>
+                  {resume.score && resume.score > 0 && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      resume.score >= 80
+                        ? "bg-green-100 text-green-700"
+                        : resume.score >= 60
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-red-100 text-red-600"
+                    }`}>
+                      Score: {resume.score}/100
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-400 mt-1">
-                  {new Date(resume.created_at).toLocaleDateString()}
+                  {new Date(resume.created_at).toLocaleDateString("en-US", {
+                    year: "numeric", month: "long", day: "numeric",
+                  })}
                 </p>
                 <p className="text-sm text-gray-500 mt-2 line-clamp-2">
                   {resume.resume_content}
@@ -112,7 +140,7 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => handleDelete(resume.id)}
-                className="text-red-500 hover:text-red-700 text-sm ml-4 shrink-0"
+                className="text-red-500 hover:text-red-700 text-sm ml-4 shrink-0 border border-red-200 px-3 py-1 rounded-lg hover:bg-red-50 transition"
               >
                 Delete
               </button>
@@ -121,5 +149,5 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

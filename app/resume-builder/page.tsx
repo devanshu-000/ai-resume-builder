@@ -36,7 +36,7 @@ export default function ResumeBuilderPage() {
   });
 
   const onSubmit = async (data: ResumeFormData) => {
-    if (loading) return; // ✅ prevent double submit
+    if (loading) return;
 
     setLoading(true);
     setGeneratedResume(null);
@@ -44,13 +44,21 @@ export default function ResumeBuilderPage() {
     try {
       const res = await fetch("/api/generate-resume", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       });
 
-      // ❗ SAFE CHECK
+      // Better error handling
       if (!res.ok) {
-        throw new Error("API request failed");
+        const errorData = await res.json();
+
+        throw new Error(
+          errorData?.error ||
+            errorData?.message ||
+            "Failed to generate resume"
+        );
       }
 
       const json = await res.json();
@@ -62,18 +70,23 @@ export default function ResumeBuilderPage() {
 
       setGeneratedResume(json.resume);
 
-      // SAVE TO DB
+      // Save to Supabase
       if (isSignedIn && user?.id) {
         await saveResume(user.id, {
           ...data,
           resumeContent: json.resume,
         });
 
-        toast.success("Resume saved successfully!");
+        toast.success("Resume generated and saved successfully!");
+      } else {
+        toast.success("Resume generated successfully!");
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Something went wrong while generating resume");
+    } catch (err: any) {
+      console.error("Resume generation error:", err);
+
+      toast.error(
+        err?.message || "Something went wrong while generating resume"
+      );
     } finally {
       setLoading(false);
     }
@@ -81,7 +94,9 @@ export default function ResumeBuilderPage() {
 
   const renderError = (key: keyof ResumeFormData) =>
     errors[key]?.message && (
-      <p className="text-red-500 text-xs">{errors[key]?.message}</p>
+      <p className="text-red-500 text-xs mt-1">
+        {errors[key]?.message}
+      </p>
     );
 
   return (
@@ -92,7 +107,10 @@ export default function ResumeBuilderPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* FORM */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-4"
+        >
           {[
             { label: "Full Name", key: "fullName" },
             { label: "Email", key: "email" },
@@ -100,11 +118,15 @@ export default function ResumeBuilderPage() {
             { label: "Job Title", key: "jobTitle" },
           ].map(({ label, key }) => (
             <div key={key}>
-              <label className="block text-sm font-medium">{label}</label>
+              <label className="block text-sm font-medium">
+                {label}
+              </label>
+
               <input
                 {...register(key as keyof ResumeFormData)}
                 className="w-full border rounded-lg p-2 mt-1"
               />
+
               {renderError(key as keyof ResumeFormData)}
             </div>
           ))}
@@ -114,11 +136,13 @@ export default function ResumeBuilderPage() {
               <label className="block text-sm font-medium capitalize">
                 {key}
               </label>
+
               <textarea
                 {...register(key as keyof ResumeFormData)}
                 rows={3}
                 className="w-full border rounded-lg p-2 mt-1"
               />
+
               {renderError(key as keyof ResumeFormData)}
             </div>
           ))}
@@ -128,7 +152,7 @@ export default function ResumeBuilderPage() {
             disabled={loading}
             className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
           >
-            {loading ? "Generating..." : "✨ Generate Resume"}
+            {loading ? "Generating Resume..." : "✨ Generate Resume"}
           </button>
         </form>
 
