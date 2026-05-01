@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 
 export default function LandingPage() {
+  const { isSignedIn } = useAuth();
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 to-white px-4">
-      
+
       <h1 className="text-5xl font-bold text-indigo-700 mb-4 text-center">
         AI Resume Builder
       </h1>
@@ -15,8 +17,14 @@ export default function LandingPage() {
         Generate a professional resume in seconds using the power of Gemini AI.
       </p>
 
-      {/* NOT LOGGED IN */}
-      <SignedOut>
+      {isSignedIn ? (
+        <Link
+          href="/dashboard"
+          className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition"
+        >
+          Go to Dashboard
+        </Link>
+      ) : (
         <div className="flex gap-4">
           <Link
             href="/sign-up"
@@ -32,17 +40,7 @@ export default function LandingPage() {
             Sign In
           </Link>
         </div>
-      </SignedOut>
-
-      {/* LOGGED IN */}
-      <SignedIn>
-        <Link
-          href="/dashboard"
-          className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition"
-        >
-          Go to Dashboard
-        </Link>
-      </SignedIn>
+      )}
 
     </main>
   );

@@ -8,7 +8,7 @@ import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 
 import { ResumeFormData } from "@/types/resume";
-import ResumePreview from "@/components/resume/ResumePreview";
+import ResumePreview from "@/src/components/resume/ResumePreview";
 import { saveResume } from "@/services/resumeService";
 
 const schema = z.object({
