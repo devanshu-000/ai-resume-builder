@@ -1,21 +1,28 @@
-"use client"
+"use client";
 
-import { useRef } from "react"
-import { downloadPDF } from "@/lib/pdfExport"
-import ResumeScore from "@/src/components/resume/ResumeScore"
+import { useRef, useState } from "react";
+import { downloadPDF } from "@/lib/pdfExport";
+import ResumeScore from "@/src/components/resume/ResumeScore";
 
 interface Props {
-  content: string
+  content: string;
 }
 
 export default function ResumePreview({ content }: Props) {
-  const previewRef = useRef<HTMLDivElement>(null)
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
 
-  const handleDownload = () => {
-    if (previewRef.current) {
-      downloadPDF("resume-preview")
+  const handleDownload = async () => {
+    if (!previewRef.current) return;
+    setDownloading(true);
+    try {
+      await downloadPDF("resume-preview", "my-resume.pdf");
+    } catch (err) {
+      console.error("PDF download failed:", err);
+    } finally {
+      setDownloading(false);
     }
-  }
+  };
 
   return (
     <div>
@@ -28,18 +35,19 @@ export default function ResumePreview({ content }: Props) {
         {content || "No resume generated yet"}
       </div>
 
-      {/* Download Button */}
+      {/* Action Buttons */}
       <div className="flex gap-3 mt-4">
         <button
           onClick={handleDownload}
-          className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+          disabled={downloading}
+          className="flex-1 bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition font-medium"
         >
-          ⬇ Download PDF
+          {downloading ? "Generating PDF..." : "⬇ Download PDF"}
         </button>
       </div>
 
       {/* Score Section */}
       <ResumeScore resumeContent={content} />
     </div>
-  )
+  );
 }

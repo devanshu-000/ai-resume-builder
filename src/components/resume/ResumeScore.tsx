@@ -1,56 +1,71 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { toast } from "sonner"
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface Props {
-  resumeContent: string
+  resumeContent: string;
 }
 
 export default function ResumeScore({ resumeContent }: Props) {
-  const [score, setScore] = useState<number | null>(null)
-  const [feedback, setFeedback] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
+  const [score, setScore] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const handleScore = async () => {
-    setLoading(true)
+    if (!resumeContent.trim()) {
+      toast.error("No resume content to analyze");
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await fetch("/api/score-resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeContent }),
-      })
+      });
 
-      if (!res.ok) throw new Error("Scoring failed")
+      const data = await res.json().catch(() => null);
 
-      const data = await res.json()
-      setScore(data.score)
-      setFeedback(data.feedback)
-    } catch {
-      toast.error("Failed to score resume")
+      if (!res.ok) {
+        const message =
+          data?.error ||
+          data?.message ||
+          `Server error (HTTP ${res.status})`;
+        throw new Error(message);
+      }
+
+      setScore(data.score ?? 0);
+      setFeedback(data.feedback ?? []);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to score resume";
+      console.error("Score resume error:", message);
+      toast.error(message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const getScoreColor = (s: number) => {
-    if (s >= 80) return "text-green-600"
-    if (s >= 60) return "text-yellow-500"
-    return "text-red-500"
-  }
+    if (s >= 80) return "text-green-600";
+    if (s >= 60) return "text-yellow-500";
+    return "text-red-500";
+  };
 
   const getBarColor = (s: number) => {
-    if (s >= 80) return "bg-green-500"
-    if (s >= 60) return "bg-yellow-400"
-    return "bg-red-500"
-  }
+    if (s >= 80) return "bg-green-500";
+    if (s >= 60) return "bg-yellow-400";
+    return "bg-red-500";
+  };
 
   const getLabel = (s: number) => {
-    if (s >= 80) return "Excellent"
-    if (s >= 60) return "Good"
-    if (s >= 40) return "Needs Work"
-    return "Poor"
-  }
+    if (s >= 80) return "Excellent";
+    if (s >= 60) return "Good";
+    if (s >= 40) return "Needs Work";
+    return "Poor";
+  };
 
   return (
     <div className="mt-4 border rounded-xl p-4 bg-white shadow-sm">
@@ -90,22 +105,24 @@ export default function ResumeScore({ resumeContent }: Props) {
           </div>
 
           {/* Feedback points */}
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              Feedback
-            </p>
-            {feedback.map((point, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2"
-              >
-                <span className="text-indigo-500 mt-0.5 shrink-0">→</span>
-                {point}
-              </div>
-            ))}
-          </div>
+          {feedback.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Feedback
+              </p>
+              {feedback.map((point, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2"
+                >
+                  <span className="text-indigo-500 mt-0.5 shrink-0">→</span>
+                  {point}
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>
-  )
+  );
 }

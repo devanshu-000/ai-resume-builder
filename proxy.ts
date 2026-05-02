@@ -5,18 +5,20 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/api/admin/auth(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const authObject = await auth();
-  const userId = authObject.userId;
-  const isHome = req.nextUrl.pathname === "/";
-
-  if (userId && isHome) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+  if (isPublicRoute(req)) {
+    return NextResponse.next();
   }
 
-  if (!isPublicRoute(req) && !userId) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    if (req.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
@@ -25,8 +27,6 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    "/((?!_next|.*\\..*).*)",
-    "/",
-    "/(api|trpc)(.*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

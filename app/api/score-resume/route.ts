@@ -1,25 +1,52 @@
-import { auth } from "@clerk/nextjs/server"
-import { NextResponse } from "next/server"
-import { scoreResume } from "@/lib/gemini"
+import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { scoreResume } from "@/lib/gemini";
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
+  // 1. Authenticate with Clerk
+  const { userId } = await auth();
 
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json(
+      { error: "Unauthorized. Please sign in." },
+      { status: 401 }
+    );
   }
 
+  // 2. Parse request body
+  let body: { resumeContent?: unknown };
   try {
-    const { resumeContent } = await req.json()
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON in request body." },
+      { status: 400 }
+    );
+  }
 
-    if (!resumeContent) {
-      return NextResponse.json({ error: "Missing resume content" }, { status: 400 })
-    }
+  // 3. Validate resumeContent
+  if (
+    !body.resumeContent ||
+    typeof body.resumeContent !== "string" ||
+    !body.resumeContent.trim()
+  ) {
+    return NextResponse.json(
+      { error: "Missing or empty resumeContent field." },
+      { status: 400 }
+    );
+  }
 
-    const result = await scoreResume(resumeContent)
-    return NextResponse.json(result)
-  } catch (error) {
-    console.error("Score resume error:", error)
-    return NextResponse.json({ error: "Scoring failed" }, { status: 500 })
+  // 4. Score the resume via OpenRouter
+  try {
+    const result = await scoreResume(body.resumeContent);
+
+    return NextResponse.json(result, { status: 200 });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    console.error("[score-resume] Error:", message);
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
